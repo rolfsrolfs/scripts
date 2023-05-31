@@ -3,17 +3,19 @@
 """Find a key or value in yaml files. Usefull for searching hiera data yaml files in puppet
 
 Usage:
-  yamlfind.py [-d] [-s] [-k] <find> <filenames> [<filenames>] [<filenames>] [<filenames>] [<filenames>] [<filenames>] [<filenames>] 
-  yamlfind.py [-d] (-h | --help)
+  yamlfind.py [-d] [-r] [-s] [-k] <find> <filenames> [<filenames>] [<filenames>] [<filenames>] [<filenames>] [<filenames>] [<filenames>] 
+  yamlfind.py [-d] [-r] [-s] [-k] <find>
+  yamlfind.py [-d] [-r] (-h | --help)
   yamlfind.py [-d] --version
   yamlfind.py [-d] 
 
 Options:
-  -h --help     Show this screen.
-  --version     Show version.
-  --search -s   Search for value
-  --key -k      Search for key
-  --debug -d    Debug arguments
+  -h --help       Show this screen.
+  --version       Show version.
+  --search -s     Search for value
+  --key -k        Search for key
+  --debug -d      Debug arguments
+  --recursive -r  Recursive in subdirectories
 
 """
 from docopt import docopt  # builds argument options from the documentation above
@@ -35,12 +37,23 @@ os/RedHat.yaml:
 
 if __name__ == '__main__':
   arguments = docopt(__doc__, version='Yaml find 1.0')
+  filenames = arguments.get('<filenames>')
+  if len(filenames) == 0 and arguments.get('--recursive'):
+      filenames = ['**/*.yaml',]
   if arguments.get('--debug'):
     print(arguments)
+    print(f"{filenames=}")
+
+  search_key = arguments.get('--key')
+  search_search = arguments.get('--search')
+
+  if not search_key and not search_search:
+      search_search = True
+      search_key = True
 
   find = arguments.get('<find>')
-  for filename in arguments.get('<filenames>'):
-    files = glob.glob(filename) # expand globs, will be a list of files
+  for filename in filenames:
+    files = glob.glob(filename, recursive=arguments.get('--recursive')) # expand globs, will be a list of files
     for file in files:
       foundinfile = False
       with open(file, 'r') as stream:
@@ -49,10 +62,10 @@ if __name__ == '__main__':
           if content:
             for k,v in content.items():
               if not isinstance(v,bool):
-                if (arguments.get('--key') and find in str(k)) or (arguments.get('--search') and find in str(v)):
+                if ( search_key and find in str(k)) or (search_search and find in str(v)):
                   if not foundinfile:
                     print(f"{file}: ")
                     foundinfile = True
-                    print(f"  {k}: {v}")
+                  print(f"  {k}: {v}")
         except yaml.YAMLError as exc:
           print(exc)
