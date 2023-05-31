@@ -50,7 +50,7 @@ if __name__ == '__main__':
   if not search_key and not search_search:
       search_search = True
       search_key = True
-
+  i = 0
   find = arguments.get('<find>')
   for filename in filenames:
     files = glob.glob(filename, recursive=arguments.get('--recursive')) # expand globs, will be a list of files
@@ -59,6 +59,7 @@ if __name__ == '__main__':
       with open(file, 'r') as stream:
         try:
           content = yaml.safe_load(stream)
+          i += 1
           if content:
             for k,v in content.items():
               if not isinstance(v,bool):
@@ -67,5 +68,12 @@ if __name__ == '__main__':
                     print(f"{file}: ")
                     foundinfile = True
                   print(f"  {k}: {v}")
+              if isinstance(v,bool):
+                if ( search_key and find in str(k)):
+                  if not foundinfile:
+                    print(f"{file}: ")
+                    foundinfile = True
+                  print(f"  {k}: {v}")
+
         except yaml.YAMLError as exc:
           print(exc)
