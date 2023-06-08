@@ -1,0 +1,36 @@
+###############################3
+## ssh-agent add-fix
+# if sock is set but file does not exist, unset the variable
+if [ \! -z "$SSH_AUTH_SOCK" ] ; then
+  if [ \! -r "$SSH_AUTH_SOCK" ]; then
+    echo "We got $SSH_AUTH_SOCK but $SSH_AUTH_SOCK does not exist - unsetting this"
+    unset SSH_AUTH_SOCK
+  fi
+fi
+# if we got our own ssh-agent file, source it if variable is empty.
+# if variable is not empty, delete the file - back to a working setup
+if [ -r $HOME/tmp/sshagent.rolf ]; then
+  if [ -z "$SSH_AUTH_SOCK" ] ; then
+    source $HOME/tmp/sshagent.$USER >/dev/null
+  fi
+  ps $SSH_AGENT_PID | grep -q ssh-agent
+  RET=$?
+  if [ "x$RET" != "x0" ]; then
+#    echo "Found agent running on pid $SSH_AGENT_PID"
+#  else
+#    echo "No agent running on pid $SSH_AGENT_PID . Removing temp-socket-info"
+    rm $HOME/tmp/sshagent.$USER
+    unset SSH_AUTH_SOCK
+  fi
+fi
+# if variable is not set, create a new one
+if [ -z "$SSH_AUTH_SOCK" ] ; then
+#    echo "Variable SSH_AUTH_SOCK is empty. Starting new"
+    if [ \! -r "$HOME/tmp" ]; then
+	    mkdir -p $HOME/tmp
+    fi
+    ssh-agent > $HOME/tmp/sshagent.$USER
+    source $HOME/tmp/sshagent.$USER
+    ssh-add
+fi
+###############################3
